@@ -48,12 +48,17 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     }
     await update.message.reply_text(messages_user[lang])
 
-    messages_owner = (
-        f'📸 New photo from @{user.username or user.first_name} (id: {user.id}).\n'
-        f'File saved: {file_path}\n'
-        f'Type /reply {user.id} to reply.'
-    )
-    await context.bot.send_message(chat_id=OWNER_CHAT_ID, text=messages_owner)
+    # Kirim foto ke owner dengan caption
+    with open(file_path, 'rb') as photo:
+        await context.bot.send_photo(
+            chat_id=OWNER_CHAT_ID,
+            photo=photo,
+            caption=(
+                f'📸 New photo from @{user.username or user.first_name} (id: {user.id}).\n'
+                f'File saved locally.\n'
+                f'Type /reply {user.id} to reply.'
+            )
+        )
 
 async def reply_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
