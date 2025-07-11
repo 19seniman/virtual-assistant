@@ -20,53 +20,22 @@ if not os.path.exists(IMAGE_DIR):
 
 REPLY = 1
 user_photo_senders = {}
+user_has_menu = set()  # Track users who sent photo and get menu
 
 def get_language(update: Update) -> str:
-    return 'en'  # Force English for now
+    return 'en'  # Force English
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def get_menu_keyboard():
     keyboard = [
         [KeyboardButton("/start")],
-        [KeyboardButton("/Send your Tx Hash")]
+        [KeyboardButton("Send your Tx Hash")]
     ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
-    message = (
-        "Welcome! Use the menu below or send me a photo or your transaction hash.\n\n"
-        "Send your transaction proof."
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Hello! Send me a photo as proof of your transaction, and I will notify the owner."
     )
-    await update.message.reply_text(message, reply_markup=reply_markup)
-
-async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.strip()
-    user = update.effective_user
-    chat_id = update.message.chat_id
-
-    if text == "/start":
-        await start(update, context)
-
-    elif text == "/Send your Tx Hash":
-        # Save chat_id for owner reply even before Tx Hash sent
-        user_photo_senders[user.id] = chat_id
-        await update.message.reply_text(
-            "Send your Tx Hash on Blockchain Transaction\nExample: Tx Hash:0009ui777"
-        )
-
-    elif text.lower().startswith("tx hash:"):
-        user_photo_senders[user.id] = chat_id
-        # Notify owner about the Tx Hash message
-        await update.message.reply_text("Tx Hash received, the owner will contact you soon.")
-        await context.bot.send_message(
-            chat_id=OWNER_CHAT_ID,
-            text=(
-                f"📢 New Tx Hash from @{user.username or user.first_name} (id: {user.id}):\n"
-                f"{text}\n"
-                f"Type /reply {user.id} to reply."
-            ),
-        )
-    else:
-        await update.message.reply_text(
-            "I didn't understand that. Please use the menu or send a photo or your Tx Hash."
-        )
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -75,6 +44,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await photo_file.download_to_drive(file_path)
 
     user_photo_senders[user.id] = update.message.chat_id
+    user_has_menu.add(user.id)  # User now eligible for menu
 
     caption = update.message.caption or "(No description provided)"
 
@@ -90,6 +60,53 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f'File saved locally.\n'
                 f'Type /reply {user.id} to reply.'
             )
+        )
+
+    # Show menu keyboard after photo
+    reply_markup = get_menu_keyboard()
+    await update.message.reply_text("Menu activated! Use the buttons below.", reply_markup=reply_markup)
+
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.strip()
+    user = update.effective_user
+    chat_id = update.message.chat_id
+
+    if text == "/start":
+        await start(update, context)
+
+    elif text == "Send your Tx Hash":
+        if user.id not in user_has_menu:
+            await update.message.reply_text(
+                "Please send a photo first to activate the menu."
+            )
+            return
+
+        user_photo_senders[user.id] = chat_id
+        await update.message.reply_text(
+            "Send your Tx Hash on Blockchain Transaction\nExample: Tx Hash:0009ui777"
+        )
+
+    elif text.lower().startswith("tx hash:"):
+        if user.id not in user_photo_senders:
+            await update.message.reply_text(
+                "Please send a photo first to activate interaction."
+            )
+            return
+
+        user_photo_senders[user.id] = chat_id
+        await update.message.reply_text("Tx Hash received, the owner will contact you soon.")
+        await context.bot.send_message(
+            chat_id=OWNER_CHAT_ID,
+            text=(
+                f"📢 New Tx Hash from @{user.username or user.first_name} (id: {user.id}):\n"
+                f"{text}\n"
+                f"Type /reply {user.id} to reply."
+            ),
+        )
+
+    else:
+        await update.message.reply_text(
+            "I didn't understand that. Please use the menu or send a photo or your Tx Hash."
         )
 
 async def reply_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
