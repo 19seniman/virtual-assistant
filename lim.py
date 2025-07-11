@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from telegram import Update
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -22,13 +22,19 @@ REPLY = 1
 user_photo_senders = {}
 
 def get_language(update: Update) -> str:
-    # Still keep language detection for potential future use
-    lang = update.effective_user.language_code
-    return 'en'  # Force English
+    return 'en'  # Keep English only for now
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    messages = 'Hello! Send me a photo, I will save it and notify the owner.\n\nSend your transaction proof.'
-    await update.message.reply_text(messages)
+    keyboard = [
+        [KeyboardButton("Send Photo")],
+        [KeyboardButton("Help")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+    message = (
+        "Welcome! Use the menu below or send me a photo directly.\n\n"
+        "Send your transaction proof."
+    )
+    await update.message.reply_text(message, reply_markup=reply_markup)
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -81,11 +87,21 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('Reply cancelled.')
     return ConversationHandler.END
 
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.lower()
+    if text == "send photo":
+        await update.message.reply_text("Please send your photo now.")
+    elif text == "help":
+        await update.message.reply_text("Just send me a photo as proof of your transaction, and the owner will get notified.")
+    else:
+        await update.message.reply_text("I didn't understand that. Please use the menu or send a photo.")
+
 def main():
     application = ApplicationBuilder().token(TOKEN).build()
 
     application.add_handler(CommandHandler('start', start))
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('reply', reply_command)],
