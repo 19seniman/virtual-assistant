@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -15,40 +15,20 @@ TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 OWNER_CHAT_ID = int(os.getenv('OWNER_CHAT_ID'))
 
 IMAGE_DIR = 'downloaded_images'
-if not os.path.exists(IMAGE_DIR):
-    os.makedirs(IMAGE_DIR)
+os.makedirs(IMAGE_DIR, exist_ok=True)
 
 REPLY = 1
 user_photo_senders = {}
 
-def get_language(update: Update) -> str:
-    return 'en'  # English only for now
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [KeyboardButton("Send Photo")],
-        [KeyboardButton("Help")]
-    ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
-    message = (
-        "Welcome! Use the menu below or send me a photo directly.\n\n"
-        "Send your transaction proof."
+    await update.message.reply_text(
+        "Hello! Send me a photo as proof of your transaction, and I will notify the owner."
     )
-    await update.message.reply_text(message, reply_markup=reply_markup)
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.lower()
-    user = update.effective_user
-    chat_id = update.message.chat_id
-
-    if text == "send photo":
-        # Save chat_id so owner can reply even if photo not sent yet
-        user_photo_senders[user.id] = chat_id
-        await update.message.reply_text("Please send your photo now.")
-    elif text == "help":
-        await update.message.reply_text("Just send me a photo as proof of your transaction, and the owner will get notified.")
-    else:
-        await update.message.reply_text("I didn't understand that. Please use the menu or send a photo.")
+    await update.message.reply_text(
+        "Please send a photo as proof of your transaction."
+    )
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -56,7 +36,6 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file_path = os.path.join(IMAGE_DIR, f'{photo_file.file_id}.jpg')
     await photo_file.download_to_drive(file_path)
 
-    # Update chat_id in case user sends photo after clicking "Send Photo"
     user_photo_senders[user.id] = update.message.chat_id
 
     await update.message.reply_text('Photo received, the owner will contact you soon.')
