@@ -15,20 +15,20 @@ TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 OWNER_CHAT_ID = int(os.getenv('OWNER_CHAT_ID'))
 
 IMAGE_DIR = 'downloaded_images'
-os.makedirs(IMAGE_DIR, exist_ok=True)
+if not os.path.exists(IMAGE_DIR):
+    os.makedirs(IMAGE_DIR)
 
 REPLY = 1
 user_photo_senders = {}
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Hello! Send me a photo as proof of your transaction, and I will notify the owner."
-    )
+def get_language(update: Update) -> str:
+    # Still keep language detection for potential future use
+    lang = update.effective_user.language_code
+    return 'en'  # Force English
 
-async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Please send a photo as proof of your transaction."
-    )
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    messages = 'Hello! Send me a photo, I will save it and notify the owner.\n\nSend your transaction proof.'
+    await update.message.reply_text(messages)
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -86,7 +86,6 @@ def main():
 
     application.add_handler(CommandHandler('start', start))
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('reply', reply_command)],
