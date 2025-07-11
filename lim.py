@@ -67,6 +67,11 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Menu activated! Use the buttons below.", reply_markup=reply_markup)
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Skip normal text handler if user is owner and currently replying
+    if update.effective_user.id == OWNER_CHAT_ID and context.user_data.get('reply_to_user_id'):
+        # Owner is in reply mode, ignore this handler to avoid message conflict
+        return
+
     text = update.message.text.strip()
     user = update.effective_user
     chat_id = update.message.chat_id
@@ -130,8 +135,15 @@ async def send_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text('An error occurred, please try again.')
         return ConversationHandler.END
 
-    message = update.message.text
-    await context.bot.send_message(chat_id=user_photo_senders[user_id], text=f'Reply from owner: {message}')
+    if update.message.photo:
+        # Owner sent photo reply
+        photo_file = await update.message.photo[-1].get_file()
+        await context.bot.send_photo(chat_id=user_photo_senders[user_id], photo=photo_file.file_id)
+    else:
+        # Owner sent text reply
+        message = update.message.text
+        await context.bot.send_message(chat_id=user_photo_senders[user_id], text=f'Reply from owner: {message}')
+
     await update.message.reply_text('Message sent to user.')
     return ConversationHandler.END
 
@@ -148,7 +160,7 @@ def main():
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('reply', reply_command)],
-        states={REPLY: [MessageHandler(filters.TEXT & ~filters.COMMAND, send_reply)]},
+        states={REPLY: [MessageHandler((filters.TEXT | filters.PHOTO) & ~filters.COMMAND, send_reply)]},
         fallbacks=[CommandHandler('cancel', cancel)],
     )
     application.add_handler(conv_handler)
