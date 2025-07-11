@@ -22,7 +22,7 @@ REPLY = 1
 user_photo_senders = {}
 
 def get_language(update: Update) -> str:
-    # Still keep language detection for potential future use
+    # Tetap pakai deteksi bahasa tapi default Inggris
     lang = update.effective_user.language_code
     return 'en'  # Force English
 
@@ -38,6 +38,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_photo_senders[user.id] = update.message.chat_id
 
+    caption = update.message.caption or "(No description provided)"
+
     await update.message.reply_text('Photo received, the owner will contact you soon.')
 
     with open(file_path, 'rb') as photo:
@@ -46,6 +48,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             photo=photo,
             caption=(
                 f'📸 New photo from @{user.username or user.first_name} (id: {user.id}).\n'
+                f'Description: {caption}\n'
                 f'File saved locally.\n'
                 f'Type /reply {user.id} to reply.'
             )
