@@ -1,4 +1,5 @@
 import os
+import logging
 from dotenv import load_dotenv
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
@@ -10,13 +11,16 @@ from telegram.ext import (
     ConversationHandler,
 )
 
+# Setup logging biar gampang debugging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 load_dotenv()
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 OWNER_CHAT_ID = int(os.getenv('OWNER_CHAT_ID'))
 
 IMAGE_DIR = 'downloaded_images'
-if not os.path.exists(IMAGE_DIR):
-    os.makedirs(IMAGE_DIR)
+os.makedirs(IMAGE_DIR, exist_ok=True)
 
 REPLY = 1
 user_photo_senders = {}
@@ -67,9 +71,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Menu activated! Use the buttons below.", reply_markup=reply_markup)
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Skip normal text handler if user is owner and currently replying
+    # Skip normal text handler if owner is currently replying to avoid conflict
     if update.effective_user.id == OWNER_CHAT_ID and context.user_data.get('reply_to_user_id'):
-        # Owner is in reply mode, ignore this handler to avoid message conflict
         return
 
     text = update.message.text.strip()
@@ -126,25 +129,32 @@ async def reply_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
     context.user_data['reply_to_user_id'] = user_id
-    await update.message.reply_text('Send your reply message to this user:')
+    await update.message.reply_text(f'You are now replying to user {user_id}. Send your reply message:')
     return REPLY
 
 async def send_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = context.user_data.get('reply_to_user_id')
     if not user_id:
-        await update.message.reply_text('An error occurred, please try again.')
+        await update.message.reply_text('No user selected to reply. Use /reply <user_id> first.')
         return ConversationHandler.END
 
-    if update.message.photo:
-        # Owner sent photo reply
-        photo_file = await update.message.photo[-1].get_file()
-        await context.bot.send_photo(chat_id=user_photo_senders[user_id], photo=photo_file.file_id)
-    else:
-        # Owner sent text reply
-        message = update.message.text
-        await context.bot.send_message(chat_id=user_photo_senders[user_id], text=f'Reply from owner: {message}')
+    chat_id = user_photo_senders.get(user_id)
+    if not chat_id:
+        await update.message.reply_text('User chat not found or user might have blocked the bot.')
+        return ConversationHandler.END
 
-    await update.message.reply_text('Message sent to user.')
+    try:
+        if update.message.photo:
+            photo_file = await update.message.photo[-1].get_file()
+            await context.bot.send_photo(chat_id=chat_id, photo=photo_file.file_id)
+        else:
+            message = update.message.text
+            await context.bot.send_message(chat_id=chat_id, text=f'Reply from owner: {message}')
+        await update.message.reply_text('Message sent to user.')
+    except Exception as e:
+        logger.error(f"Failed to send message to user {user_id}: {e}")
+        await update.message.reply_text('Failed to send message to user. They might have blocked the bot or chat is invalid.')
+
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
