@@ -22,7 +22,7 @@ REPLY = 1
 user_photo_senders = {}
 
 def get_language(update: Update) -> str:
-    return 'en'  # Keep English only for now
+    return 'en'  # English only for now
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
@@ -36,12 +36,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(message, reply_markup=reply_markup)
 
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.lower()
+    user = update.effective_user
+    chat_id = update.message.chat_id
+
+    if text == "send photo":
+        # Save chat_id so owner can reply even if photo not sent yet
+        user_photo_senders[user.id] = chat_id
+        await update.message.reply_text("Please send your photo now.")
+    elif text == "help":
+        await update.message.reply_text("Just send me a photo as proof of your transaction, and the owner will get notified.")
+    else:
+        await update.message.reply_text("I didn't understand that. Please use the menu or send a photo.")
+
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     photo_file = await update.message.photo[-1].get_file()
     file_path = os.path.join(IMAGE_DIR, f'{photo_file.file_id}.jpg')
     await photo_file.download_to_drive(file_path)
 
+    # Update chat_id in case user sends photo after clicking "Send Photo"
     user_photo_senders[user.id] = update.message.chat_id
 
     await update.message.reply_text('Photo received, the owner will contact you soon.')
@@ -86,15 +101,6 @@ async def send_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('Reply cancelled.')
     return ConversationHandler.END
-
-async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.lower()
-    if text == "send photo":
-        await update.message.reply_text("Please send your photo now.")
-    elif text == "help":
-        await update.message.reply_text("Just send me a photo as proof of your transaction, and the owner will get notified.")
-    else:
-        await update.message.reply_text("I didn't understand that. Please use the menu or send a photo.")
 
 def main():
     application = ApplicationBuilder().token(TOKEN).build()
