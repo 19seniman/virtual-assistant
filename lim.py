@@ -21,8 +21,8 @@ def get_language(update: Update):
 def start(update: Update, context: CallbackContext):
     lang = get_language(update)
     messages = {
-        'id': 'Halo! Kirim gambar ke aku, nanti aku simpen dan owner bakal dapat notifikasi.',
-        'en': 'Hello! Send me a photo, I will save it and notify the owner.'
+        'id': 'Halo! Kirim gambar ke aku, nanti aku simpen dan owner bakal dapat notifikasi.\n\nKirim bukti transaksimu.',
+        'en': 'Hello! Send me a photo, I will save it and notify the owner.\n\nSend your transaction proof.'
     }
     update.message.reply_text(messages[lang])
 
