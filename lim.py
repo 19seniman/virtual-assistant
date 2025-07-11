@@ -11,7 +11,6 @@ from telegram.ext import (
     ConversationHandler,
 )
 
-# Setup logging biar gampang debugging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -24,10 +23,7 @@ os.makedirs(IMAGE_DIR, exist_ok=True)
 
 REPLY = 1
 user_photo_senders = {}
-user_has_menu = set()  # Track users who sent photo and get menu
-
-def get_language(update: Update) -> str:
-    return 'en'  # Force English
+user_has_menu = set()
 
 def get_menu_keyboard():
     keyboard = [
@@ -40,6 +36,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Hello! Send me a photo as proof of your transaction, and I will notify the owner."
     )
+    if update.effective_user.id != OWNER_CHAT_ID:
+        reply_markup = get_menu_keyboard()
+        await update.message.reply_text("Menu activated! Use the buttons below.", reply_markup=reply_markup)
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -48,7 +47,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await photo_file.download_to_drive(file_path)
 
     user_photo_senders[user.id] = update.message.chat_id
-    user_has_menu.add(user.id)  # User now eligible for menu
+    user_has_menu.add(user.id)
 
     caption = update.message.caption or "(No description provided)"
 
@@ -66,14 +65,13 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         )
 
-    # Show menu keyboard after photo
-    reply_markup = get_menu_keyboard()
-    await update.message.reply_text("Menu activated! Use the buttons below.", reply_markup=reply_markup)
+    if user.id != OWNER_CHAT_ID:
+        reply_markup = get_menu_keyboard()
+        await update.message.reply_text("Menu activated! Use the buttons below.", reply_markup=reply_markup)
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Skip normal text handler if owner is currently replying to avoid conflict
     if update.effective_user.id == OWNER_CHAT_ID and context.user_data.get('reply_to_user_id'):
-        return
+        return  # Skip normal handler when owner is replying
 
     text = update.message.text.strip()
     user = update.effective_user
@@ -129,7 +127,7 @@ async def reply_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
     context.user_data['reply_to_user_id'] = user_id
-    await update.message.reply_text(f'You are now replying to user {user_id}. Send your reply message:')
+    await update.message.reply_text(f'You are now replying to user {user_id}. Send your reply message. Send /cancel to stop replying.')
     return REPLY
 
 async def send_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -155,10 +153,12 @@ async def send_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Failed to send message to user {user_id}: {e}")
         await update.message.reply_text('Failed to send message to user. They might have blocked the bot or chat is invalid.')
 
-    return ConversationHandler.END
+    # Stay in reply state to allow multiple replies
+    return REPLY
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('Reply cancelled.')
+    context.user_data.pop('reply_to_user_id', None)
+    await update.message.reply_text('Reply session cancelled. Use /reply <user_id> to start again.')
     return ConversationHandler.END
 
 def main():
