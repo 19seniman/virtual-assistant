@@ -22,33 +22,24 @@ REPLY = 1
 user_photo_senders = {}
 
 def get_language(update: Update) -> str:
+    # Still keep language detection for potential future use
     lang = update.effective_user.language_code
-    return lang if lang in ['id', 'en'] else 'en'
+    return 'en'  # Force English
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_language(update)
-    messages = {
-        'id': 'Halo! Kirim gambar ke aku, nanti aku simpen dan owner bakal dapat notifikasi.\n\nKirim bukti transaksimu.',
-        'en': 'Hello! Send me a photo, I will save it and notify the owner.\n\nSend your transaction proof.'
-    }
-    await update.message.reply_text(messages[lang])
+    messages = 'Hello! Send me a photo, I will save it and notify the owner.\n\nSend your transaction proof.'
+    await update.message.reply_text(messages)
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    lang = get_language(update)
     photo_file = await update.message.photo[-1].get_file()
     file_path = os.path.join(IMAGE_DIR, f'{photo_file.file_id}.jpg')
     await photo_file.download_to_drive(file_path)
 
     user_photo_senders[user.id] = update.message.chat_id
 
-    messages_user = {
-        'id': 'Gambar diterima, owner akan segera menghubungi kamu.',
-        'en': 'Photo received, the owner will contact you soon.'
-    }
-    await update.message.reply_text(messages_user[lang])
+    await update.message.reply_text('Photo received, the owner will contact you soon.')
 
-    # Kirim foto ke owner dengan caption
     with open(file_path, 'rb') as photo:
         await context.bot.send_photo(
             chat_id=OWNER_CHAT_ID,
@@ -62,50 +53,32 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def reply_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
-    lang = get_language(update)
     if len(args) != 1 or not args[0].isdigit():
-        messages = {
-            'id': 'Gunakan perintah dengan benar: /reply <user_id>',
-            'en': 'Please use the command correctly: /reply <user_id>'
-        }
-        await update.message.reply_text(messages[lang])
+        await update.message.reply_text('Please use the command correctly: /reply <user_id>')
         return ConversationHandler.END
 
     user_id = int(args[0])
     if user_id not in user_photo_senders:
-        messages = {
-            'id': 'User ID tidak ditemukan atau sudah tidak aktif.',
-            'en': 'User ID not found or no longer active.'
-        }
-        await update.message.reply_text(messages[lang])
+        await update.message.reply_text('User ID not found or no longer active.')
         return ConversationHandler.END
 
     context.user_data['reply_to_user_id'] = user_id
-    messages = {
-        'id': 'Kirim pesan balasan untuk user ini:',
-        'en': 'Send your reply message to this user:'
-    }
-    await update.message.reply_text(messages[lang])
+    await update.message.reply_text('Send your reply message to this user:')
     return REPLY
 
 async def send_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = context.user_data.get('reply_to_user_id')
     if not user_id:
-        await update.message.reply_text('Terjadi kesalahan, coba lagi.')
+        await update.message.reply_text('An error occurred, please try again.')
         return ConversationHandler.END
 
     message = update.message.text
-    await context.bot.send_message(chat_id=user_photo_senders[user_id], text=f'Balasan dari owner: {message}')
-    await update.message.reply_text('Pesan terkirim ke user.')
+    await context.bot.send_message(chat_id=user_photo_senders[user_id], text=f'Reply from owner: {message}')
+    await update.message.reply_text('Message sent to user.')
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_language(update)
-    messages = {
-        'id': 'Balasan dibatalkan.',
-        'en': 'Reply cancelled.'
-    }
-    await update.message.reply_text(messages[lang])
+    await update.message.reply_text('Reply cancelled.')
     return ConversationHandler.END
 
 def main():
