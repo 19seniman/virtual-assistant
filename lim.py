@@ -27,7 +27,7 @@ def get_language(update: Update) -> str:
     return 'en'  # Force English
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    messages = 'Hello! Send me a photo, I will save it and notify the owner.\n\nSend your transaction proof.'
+    messages = 'Hello! Send me a photo & Tx Hash , I will save it and notify the owner.\n\nSend your transaction proof.'
     await update.message.reply_text(messages)
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
