@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from telegram import Update
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -22,13 +22,51 @@ REPLY = 1
 user_photo_senders = {}
 
 def get_language(update: Update) -> str:
-    # Tetap pakai deteksi bahasa tapi default Inggris
-    lang = update.effective_user.language_code
-    return 'en'  # Force English
+    return 'en'  # Force English for now
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    messages = 'Hello! Send me a photo & Tx Hash , I will save it and notify the owner.\n\nSend your transaction proof.'
-    await update.message.reply_text(messages)
+    keyboard = [
+        [KeyboardButton("/start")],
+        [KeyboardButton("/Send your Tx Hash")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+    message = (
+        "Welcome! Use the menu below or send me a photo or your transaction hash.\n\n"
+        "Send your transaction proof."
+    )
+    await update.message.reply_text(message, reply_markup=reply_markup)
+
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.strip()
+    user = update.effective_user
+    chat_id = update.message.chat_id
+
+    if text == "/start":
+        await start(update, context)
+
+    elif text == "/Send your Tx Hash":
+        # Save chat_id for owner reply even before Tx Hash sent
+        user_photo_senders[user.id] = chat_id
+        await update.message.reply_text(
+            "Send your Tx Hash on Blockchain Transaction\nExample: Tx Hash:0009ui777"
+        )
+
+    elif text.lower().startswith("tx hash:"):
+        user_photo_senders[user.id] = chat_id
+        # Notify owner about the Tx Hash message
+        await update.message.reply_text("Tx Hash received, the owner will contact you soon.")
+        await context.bot.send_message(
+            chat_id=OWNER_CHAT_ID,
+            text=(
+                f"📢 New Tx Hash from @{user.username or user.first_name} (id: {user.id}):\n"
+                f"{text}\n"
+                f"Type /reply {user.id} to reply."
+            ),
+        )
+    else:
+        await update.message.reply_text(
+            "I didn't understand that. Please use the menu or send a photo or your Tx Hash."
+        )
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -89,6 +127,7 @@ def main():
 
     application.add_handler(CommandHandler('start', start))
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('reply', reply_command)],
