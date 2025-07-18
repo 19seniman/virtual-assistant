@@ -8,8 +8,8 @@ from telegram.ext import (
     ContextTypes,
     MessageHandler,
     filters,
-    JobQueue, # Import JobQueue explicitly
-    CallbackQueryHandler # Import CallbackQueryHandler
+    JobQueue,
+    CallbackQueryHandler
 )
 from telegram.error import Forbidden # Import Forbidden to handle blocked users
 
@@ -25,6 +25,16 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+# Main keyboard definition (will be stored in bot_data)
+# This definition remains here for clarity, but the actual object used will be from bot_data
+_main_menu_keyboard_definition = [
+    ["/start"],
+    ["/send_tx_hash"],
+    ["/send_picture_proof"],
+    ["/buy_testnet_faucet"],
+    ["/script_access_on_github"]
+]
 
 # Define all messages in both Indonesian and English
 MESSAGES = {
@@ -124,7 +134,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if user_id in context.bot_data.get('user_languages', {}):
         await update.message.reply_text(
             get_message(user_id, "welcome_menu", user_name=user_name),
-            reply_markup=main_menu_markup,
+            reply_markup=context.bot_data['main_menu_markup'], # Access from bot_data
         )
     else:
         # Offer language selection
@@ -154,7 +164,7 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
         # Edit the message to remove the language selection buttons and show the welcome message
         await query.edit_message_text(
             text=get_message(user_id, "welcome_menu", user_name=user_name),
-            reply_markup=main_menu_markup
+            reply_markup=context.bot_data['main_menu_markup'] # Access from bot_data
         )
 
 
@@ -223,7 +233,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     # Inform the user that the photo has been forwarded
     await update.message.reply_text(
         get_message(user_id, "photo_received_user"),
-        reply_markup=main_menu_markup
+        reply_markup=context.bot_data['main_menu_markup'] # Access from bot_data
     )
 
 # Handle text messages
@@ -288,14 +298,14 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             # Inform the user
             await update.message.reply_text(
                 get_message(user_id, "hash_received_user"),
-                reply_markup=main_menu_markup
+                reply_markup=context.bot_data['main_menu_markup'] # Access from bot_data
             )
         # Check if the message is a digit (e.g., '1', '2', '3')
         elif text.isdigit():
             # Respond with the purchase detail prompt
             await update.message.reply_text(
                 get_message(user_id, "purchase_details_prompt"),
-                reply_markup=main_menu_markup # Keep the menu visible
+                reply_markup=context.bot_data['main_menu_markup'] # Keep the menu visible
             )
         else:
             # If it's any other text message from the user, forward it to the owner
@@ -313,7 +323,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             )
             await update.message.reply_text(
                 get_message(user_id, "unknown_text_forwarded_user"),
-                reply_markup=main_menu_markup
+                reply_markup=context.bot_data['main_menu_markup'] # Access from bot_data
             )
 
 # Scheduled function to send faucet list
@@ -350,7 +360,9 @@ def main() -> None:
     application.bot_data['user_map'] = {}
     application.bot_data['all_users'] = set() # Use a set to store unique user IDs
     application.bot_data['user_languages'] = {} # Store user language preferences
-    logger.info("user_map, all_users, and user_languages initialized.")
+    # Store the main_menu_markup in bot_data for easy access
+    application.bot_data['main_menu_markup'] = ReplyKeyboardMarkup(_main_menu_keyboard_definition, resize_keyboard=True, one_time_keyboard=False)
+    logger.info("user_map, all_users, user_languages, and main_menu_markup initialized.")
 
     # Register handlers
     application.add_handler(CommandHandler("start", start))
