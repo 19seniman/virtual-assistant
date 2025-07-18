@@ -26,7 +26,8 @@ logger = logging.getLogger(__name__)
 # Keyboard utama
 main_menu_keyboard = [
     ["/start"],
-    ["/send_tx_hash"]
+    ["/send_tx_hash"],
+    ["/send_picture_proof"] # Menambahkan menu baru
 ]
 main_menu_markup = ReplyKeyboardMarkup(main_menu_keyboard, resize_keyboard=True, one_time_keyboard=False)
 
@@ -46,6 +47,13 @@ async def send_tx_hash_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE
     await update.message.reply_text(
         "Silakan kirim bukti tx hash on blockchain transaction\n"
         "Contoh: tx hash : 0x123abc..."
+    )
+
+# /send_picture_proof command (fungsi baru)
+async def send_picture_proof_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Meminta pengguna untuk mengirimkan bukti gambar."""
+    await update.message.reply_text(
+        "Silakan kirimkan bukti gambar."
     )
 
 # Tangani gambar
@@ -167,6 +175,7 @@ def main() -> None:
     # Daftarkan handler
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("send_tx_hash", send_tx_hash_prompt))
+    application.add_handler(CommandHandler("send_picture_proof", send_picture_proof_prompt)) # Menambahkan handler baru
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     # Menangani pesan teks yang bukan perintah
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
