@@ -28,7 +28,7 @@ main_menu_keyboard = [
     ["/start"],
     ["/send_tx_hash"],
     ["/send_picture_proof"],
-    ["/buy_testnet_faucet"] # Add new menu
+    ["/buy_testnet_faucet"]
 ]
 main_menu_markup = ReplyKeyboardMarkup(main_menu_keyboard, resize_keyboard=True, one_time_keyboard=False)
 
@@ -56,7 +56,7 @@ async def send_picture_proof_prompt(update: Update, context: ContextTypes.DEFAUL
         "Please send your picture proof."
     )
 
-# /buy_testnet_faucet command (new function)
+# /buy_testnet_faucet command
 async def buy_testnet_faucet_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Displays testnet faucet options and payment methods."""
     message = (
@@ -165,11 +165,32 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 "Your hash message has been forwarded to the owner.",
                 reply_markup=main_menu_markup
             )
-        else:
-            # Handle other text messages from users that are not hash messages or commands
+        # Check if the message is a digit (e.g., '1', '2', '3')
+        elif text.isdigit():
+            # Respond with the purchase detail prompt
             await update.message.reply_text(
-                "Sorry, I can only accept images as transaction proof or messages in the format 'tx hash : [your hash]'.\n\n"
-                "Please use the menu below.",
+                "Please fill in the details:\n"
+                "Select Faucet Number or Name: \n"
+                "Purchase Quantity: \n"
+                "Payment Method: ",
+                reply_markup=main_menu_markup # Keep the menu visible
+            )
+        else:
+            # If it's any other text message from the user, forward it to the owner
+            forwarded_message = await context.bot.forward_message(
+                chat_id=OWNER_ID,
+                from_chat_id=chat_id,
+                message_id=update.message.message_id
+            )
+            logger.info(f"General text message from {user.full_name} (ID: {user.id}) forwarded to owner. Forwarded Message ID: {forwarded_message.message_id}")
+            context.bot_data['user_map'][forwarded_message.message_id] = user.id
+
+            await context.bot.send_message(
+                chat_id=OWNER_ID,
+                text=f"⬆️ The message above is from: {user.full_name} (ID: {user.id})"
+            )
+            await update.message.reply_text(
+                "Your message has been forwarded to the owner. Thank you!",
                 reply_markup=main_menu_markup
             )
 
@@ -190,7 +211,7 @@ def main() -> None:
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("send_tx_hash", send_tx_hash_prompt))
     application.add_handler(CommandHandler("send_picture_proof", send_picture_proof_prompt))
-    application.add_handler(CommandHandler("buy_testnet_faucet", buy_testnet_faucet_prompt)) # Add new handler
+    application.add_handler(CommandHandler("buy_testnet_faucet", buy_testnet_faucet_prompt))
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     # Handle text messages that are not commands
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
