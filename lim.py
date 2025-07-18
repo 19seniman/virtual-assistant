@@ -203,11 +203,11 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         elif text.isdigit():
             # Respond with the purchase detail prompt
             await update.message.reply_text(
-                "silakan isi keterangan\n" # Updated message content
-                "▫️Pilih Nomor atau nama Faucetnya :\n"
-                "▫️Jumlah Pembelian :\n"
-                "▫️Alamat Wallet kamu :\n"
-                "▫️Metode Pembayaran :",
+                "Please fill in the details\n" # Translated message content
+                "▫️Select Faucet Number or Name :\n"
+                "▫️Purchase Quantity :\n"
+                "▫️Your Wallet Address :\n"
+                "▫️Payment Method :",
                 reply_markup=main_menu_markup # Keep the menu visible
             )
         else:
@@ -267,7 +267,7 @@ def main() -> None:
     application.add_handler(CommandHandler("send_tx_hash", send_tx_hash_prompt))
     application.add_handler(CommandHandler("send_picture_proof", send_picture_proof_prompt))
     application.add_handler(CommandHandler("buy_testnet_faucet", buy_testnet_faucet_prompt))
-    application.add_handler(CommandHandler("script_access_on_github", script_access_on_github_prompt)) # Updated handler registration
+    application.add_handler(CommandHandler("script_access_on_github", script_access_on_github_prompt))
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     # Handle text messages that are not commands
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
