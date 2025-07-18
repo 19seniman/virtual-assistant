@@ -169,7 +169,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         elif text.isdigit():
             # Respond with the purchase detail prompt
             await update.message.reply_text(
-                "Please fill in the details:\n"
+                "Please fill in the details\n" # Removed the colon here
                 "Select Faucet Number or Name: \n"
                 "Purchase Quantity: \n"
                 "Payment Method: ",
