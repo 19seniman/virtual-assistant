@@ -54,7 +54,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_has_menu.add(user.id) # Aktifkan menu untuk pengguna biasa
         reply_markup = get_menu_keyboard()
         await update.message.reply_text(
-            "Halo! Kirimkan saya foto sebagai bukti transaksi Anda, dan saya akan memberitahu pemilik. Menu diaktifkan! Gunakan tombol di bawah.",
+            "Halo! Kirimkan saya gambar sebagai bukti transaksi Anda,. Menu diaktifkan! Gunakan tombol di bawah.", # Updated message
             reply_markup=reply_markup
         )
     else:
@@ -127,7 +127,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         await update.message.reply_text(
-            "Kirim Tx Hash Anda pada Transaksi Blockchain\nContoh: Tx Hash:0009ui777"
+            "Silakan kirim bukti tx hash on blockchain transaction\nContoh: tx hash :" # Updated message
         )
 
     elif text.lower().startswith("tx hash:"):
@@ -200,7 +200,8 @@ async def send_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.info(f"Pemilik {update.effective_user.id} membalas dengan teks ke pengguna {user_id} (chat_id: {chat_id}): '{message_text}'")
             await context.bot.send_message(chat_id=chat_id, text=f'Balasan dari pemilik: {message_text}')
         
-        await update.message.reply_text('Pesan berhasil dikirim ke pengguna.')
+        # Hapus baris ini agar pemilik tidak menerima balasan dari bot saat membalas
+        # await update.message.reply_text('Pesan berhasil dikirim ke pengguna.') 
         logger.info(f"Konfirmasi terkirim ke pemilik {update.effective_user.id}.")
 
     except Exception as e:
