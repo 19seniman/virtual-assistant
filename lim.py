@@ -31,7 +31,7 @@ main_menu_keyboard = [
     ["/send_tx_hash"],
     ["/send_picture_proof"],
     ["/buy_testnet_faucet"],
-    ["/script_access_permission_on_github"] # Menambahkan menu baru
+    ["/script_access_on_github"] # Updated menu item name
 ]
 main_menu_markup = ReplyKeyboardMarkup(main_menu_keyboard, resize_keyboard=True, one_time_keyboard=False)
 
@@ -90,8 +90,8 @@ async def buy_testnet_faucet_prompt(update: Update, context: ContextTypes.DEFAUL
     context.bot_data.setdefault('all_users', set()).add(update.effective_user.id)
     await update.message.reply_text(FAUCET_LIST_MESSAGE)
 
-# /script_access_permission_on_github command (fungsi baru)
-async def script_access_permission_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+# /script_access_on_github command (renamed function)
+async def script_access_on_github_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Prompts the user for payment to gain script access on GitHub."""
     # Add user to the set of all users
     context.bot_data.setdefault('all_users', set()).add(update.effective_user.id)
@@ -266,7 +266,7 @@ def main() -> None:
     application.add_handler(CommandHandler("send_tx_hash", send_tx_hash_prompt))
     application.add_handler(CommandHandler("send_picture_proof", send_picture_proof_prompt))
     application.add_handler(CommandHandler("buy_testnet_faucet", buy_testnet_faucet_prompt))
-    application.add_handler(CommandHandler("script_access_permission_on_github", script_access_permission_prompt)) # Menambahkan handler baru
+    application.add_handler(CommandHandler("script_access_on_github", script_access_on_github_prompt)) # Updated handler registration
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     # Handle text messages that are not commands
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
