@@ -9,6 +9,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from telegram.error import Forbidden # Import Forbidden to handle blocked users
 
 # Load environment variables from .env file
 load_dotenv()
@@ -32,10 +33,30 @@ main_menu_keyboard = [
 ]
 main_menu_markup = ReplyKeyboardMarkup(main_menu_keyboard, resize_keyboard=True, one_time_keyboard=False)
 
+# Message content for the scheduled faucet list
+FAUCET_LIST_MESSAGE = (
+    "🟢Ready Faucet :\n\n"
+    "1. Monad Testnet 🔁 Rp. 1.200 | 0.074 $Usdt or $Usdc / 1\n"
+    "2. ETH Sepolia 🔁 Rp. 4500 | 0.28 $Usdt or $Usdc / 1\n"
+    "3. Somnia/stt Testnet 🔁 Rp. 450 | 0.031 $Usdt or $Usdc / 1\n"
+    "4. Pharos Testnet 🔁 Rp. 600 | 0.037 $Usdt or $Usdc / 1\n"
+    "5. Sui Testnet 🔁 Rp 350 | 0.021 $Usdt or $Usdc / 1\n"
+    "6. 0G Testnet >> Coming soon..\n\n"
+    "🛗 Payment Method\n"
+    "⏺ Dana : 085275232733 | A/N : Hardianti\n"
+    "⏺ Crypto : USDT & USDC | ➡️wallet address: 0xa138031dc7ea75c464364ed1a6d1cb3b510ff630\n\n"
+    "Please select number 1,2,3,4,5,6... if you wish to purchase."
+)
+
+
 # /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Responds to the /start command from the user."""
     user_name = update.effective_user.first_name
+    # Add user to the set of all users
+    context.bot_data.setdefault('all_users', set()).add(update.effective_user.id)
+    logger.info(f"User {user_name} (ID: {update.effective_user.id}) started the bot and added to all_users.")
+
     await update.message.reply_text(
         f"Hello {user_name}! Please select an option from the menu below.",
         reply_markup=main_menu_markup,
@@ -44,6 +65,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 # /send_tx_hash command
 async def send_tx_hash_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Prompts the user to send a transaction hash."""
+    # Add user to the set of all users
+    context.bot_data.setdefault('all_users', set()).add(update.effective_user.id)
     await update.message.reply_text(
         "Please send your blockchain transaction hash proof\n"
         "Example: tx hash : 0x123abc..."
@@ -52,6 +75,8 @@ async def send_tx_hash_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE
 # /send_picture_proof command
 async def send_picture_proof_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Prompts the user to send a picture proof."""
+    # Add user to the set of all users
+    context.bot_data.setdefault('all_users', set()).add(update.effective_user.id)
     await update.message.reply_text(
         "Please send your picture proof."
     )
@@ -59,25 +84,17 @@ async def send_picture_proof_prompt(update: Update, context: ContextTypes.DEFAUL
 # /buy_testnet_faucet command
 async def buy_testnet_faucet_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Displays testnet faucet options and payment methods."""
-    message = (
-        "🟢Ready Faucet :\n\n"
-        "1. Monad Testnet 🔁 Rp. 1.200 | 0.074 $Usdt or $Usdc / 1\n"
-        "2. ETH Sepolia 🔁 Rp. 4500 | 0.28 $Usdt or $Usdc / 1\n"
-        "3. Somnia/stt Testnet 🔁 Rp. 450 | 0.031 $Usdt or $Usdc / 1\n"
-        "4. Pharos Testnet 🔁 Rp. 600 | 0.037 $Usdt or $Usdc / 1\n"
-        "5. Sui Testnet 🔁 Rp 350 | 0.021 $Usdt or $Usdc / 1\n"
-        "6. 0G Testnet >> Coming soon..\n\n"
-        "🛗 Payment Method\n"
-        "⏺ Dana : 085275232733 | A/N : Hardianti\n"
-        "⏺ Crypto : USDT & USDC | ➡️wallet address: 0xa138031dc7ea75c464364ed1a6d1cb3b510ff630\n\n"
-        "Please select number 1,2,3,4,5,6... if you wish to purchase."
-    )
-    await update.message.reply_text(message)
+    # Add user to the set of all users
+    context.bot_data.setdefault('all_users', set()).add(update.effective_user.id)
+    await update.message.reply_text(FAUCET_LIST_MESSAGE)
 
 # Handle photo
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handles messages containing photos (transaction proofs)."""
     user = update.effective_user
+
+    # Add user to the set of all users
+    context.bot_data.setdefault('all_users', set()).add(user.id)
 
     # Initialize user_map to store forwarded message_id to original user's chat_id mapping.
     context.bot_data.setdefault('user_map', {})
@@ -111,6 +128,9 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     chat_id = update.message.chat_id
     text = update.message.text
     user = update.effective_user
+
+    # Add user to the set of all users
+    context.bot_data.setdefault('all_users', set()).add(user.id)
 
     # Initialize user_map
     context.bot_data.setdefault('user_map', {})
@@ -169,7 +189,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         elif text.isdigit():
             # Respond with the purchase detail prompt
             await update.message.reply_text(
-                "Please fill in the details\n" # Removed the colon here
+                "Please fill in the details\n"
                 "Select Faucet Number or Name: \n"
                 "Purchase Quantity: \n"
                 "Payment Method: ",
@@ -194,6 +214,21 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 reply_markup=main_menu_markup
             )
 
+# Scheduled function to send faucet list
+async def send_scheduled_faucet_list(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Sends the faucet list message to all known users."""
+    if 'all_users' in context.bot_data:
+        for user_id in list(context.bot_data['all_users']): # Iterate over a copy to allow modification if users block
+            try:
+                await context.bot.send_message(chat_id=user_id, text=FAUCET_LIST_MESSAGE)
+                logger.info(f"Sent scheduled faucet list to user ID: {user_id}")
+            except Forbidden:
+                # User blocked the bot, remove them from the list
+                context.bot_data['all_users'].remove(user_id)
+                logger.warning(f"User ID: {user_id} blocked the bot. Removed from scheduled messages.")
+            except Exception as e:
+                logger.error(f"Failed to send scheduled faucet list to user ID: {user_id}: {e}")
+
 # Main function
 def main() -> None:
     """Main function to run the bot."""
@@ -203,9 +238,10 @@ def main() -> None:
 
     application = Application.builder().token(BOT_TOKEN).build()
 
-    # Initialize user_map in application.bot_data to persist across handlers
+    # Initialize user_map and all_users in application.bot_data to persist across handlers
     application.bot_data['user_map'] = {}
-    logger.info("user_map initialized.")
+    application.bot_data['all_users'] = set() # Use a set to store unique user IDs
+    logger.info("user_map and all_users initialized.")
 
     # Register handlers
     application.add_handler(CommandHandler("start", start))
@@ -215,6 +251,13 @@ def main() -> None:
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     # Handle text messages that are not commands
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+
+    # Get the JobQueue instance
+    job_queue = application.job_queue
+
+    # Schedule the recurring message every 8 hours (28800 seconds)
+    job_queue.run_repeating(send_scheduled_faucet_list, interval=28800, first=5) # first=5 to send first message 5 seconds after start
+    logger.info("Scheduled faucet list message to run every 8 hours.")
 
     logger.info("🤖 Bot is running...")
     # Start polling to receive updates
