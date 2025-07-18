@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 main_menu_keyboard = [
     ["/start"],
     ["/send_tx_hash"],
-    ["/send_picture_proof"]
+    ["/send_picture_proof"],
+    ["/buy_testnet_faucet"] # Add new menu
 ]
 main_menu_markup = ReplyKeyboardMarkup(main_menu_keyboard, resize_keyboard=True, one_time_keyboard=False)
 
@@ -54,6 +55,24 @@ async def send_picture_proof_prompt(update: Update, context: ContextTypes.DEFAUL
     await update.message.reply_text(
         "Please send your picture proof."
     )
+
+# /buy_testnet_faucet command (new function)
+async def buy_testnet_faucet_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Displays testnet faucet options and payment methods."""
+    message = (
+        "🟢Ready Faucet :\n\n"
+        "1. Monad Testnet 🔁 Rp. 1.200 | 0.074 $Usdt or $Usdc / 1\n"
+        "2. ETH Sepolia 🔁 Rp. 4500 | 0.28 $Usdt or $Usdc / 1\n"
+        "3. Somnia/stt Testnet 🔁 Rp. 450 | 0.031 $Usdt or $Usdc / 1\n"
+        "4. Pharos Testnet 🔁 Rp. 600 | 0.037 $Usdt or $Usdc / 1\n"
+        "5. Sui Testnet 🔁 Rp 350 | 0.021 $Usdt or $Usdc / 1\n"
+        "6. 0G Testnet >> Coming soon..\n\n"
+        "🛗 Payment Method\n"
+        "⏺ Dana : 085275232733 | A/N : Hardianti\n"
+        "⏺ Crypto : USDT & USDC | ➡️wallet address: 0xa138031dc7ea75c464364ed1a6d1cb3b510ff630\n\n"
+        "Please select number 1,2,3,4,5,6... if you wish to purchase."
+    )
+    await update.message.reply_text(message)
 
 # Handle photo
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -171,6 +190,7 @@ def main() -> None:
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("send_tx_hash", send_tx_hash_prompt))
     application.add_handler(CommandHandler("send_picture_proof", send_picture_proof_prompt))
+    application.add_handler(CommandHandler("buy_testnet_faucet", buy_testnet_faucet_prompt)) # Add new handler
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     # Handle text messages that are not commands
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
