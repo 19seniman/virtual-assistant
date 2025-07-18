@@ -236,7 +236,8 @@ def main() -> None:
         logger.error("BOT_TOKEN or OWNER_ID not found! Please ensure they are set in your .env file.")
         return
 
-    application = Application.builder().token(BOT_TOKEN).build()
+    # Enable JobQueue by setting job_queue=True
+    application = Application.builder().token(BOT_TOKEN).job_queue(True).build()
 
     # Initialize user_map and all_users in application.bot_data to persist across handlers
     application.bot_data['user_map'] = {}
