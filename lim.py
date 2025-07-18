@@ -95,7 +95,8 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     if str(chat_id) == OWNER_ID and update.message.reply_to_message:
         logger.info(f"Pemilik {user.full_name} (ID: {user.id}) membalas sebuah pesan.")
         logger.info(f"ID Pesan yang Dibalas: {update.message.reply_to_message.message_id}")
-        logger.info(f"Tipe Media Pesan yang Dibalas: {update.message.reply_to_message.effective_media_type}")
+        # Menghapus baris ini karena 'effective_media_type' tidak selalu ada pada semua objek Message
+        # logger.info(f"Tipe Media Pesan yang Dibalas: {update.message.reply_to_message.effective_media_type}")
         logger.info(f"Pengirim Pesan yang Dibalas: {update.message.reply_to_message.from_user.full_name if update.message.reply_to_message.from_user else 'None'}")
 
         replied_msg_id = update.message.reply_to_message.message_id
