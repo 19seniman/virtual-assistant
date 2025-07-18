@@ -10,12 +10,12 @@ from telegram.ext import (
     filters,
 )
 
-# Muat variabel lingkungan dari file .env
+# Load environment variables from .env file
 load_dotenv()
 
-# Ambil token bot dan ID pemilik dari environment variables
+# Get bot token and owner ID from environment variables
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-OWNER_ID = os.getenv("OWNER_ID")  # Harus dalam format string
+OWNER_ID = os.getenv("OWNER_ID")  # Must be in string format
 
 # Logging
 logging.basicConfig(
@@ -23,165 +23,160 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Keyboard utama
+# Main keyboard
 main_menu_keyboard = [
     ["/start"],
     ["/send_tx_hash"],
-    ["/send_picture_proof"] # Menambahkan menu baru
+    ["/send_picture_proof"]
 ]
 main_menu_markup = ReplyKeyboardMarkup(main_menu_keyboard, resize_keyboard=True, one_time_keyboard=False)
 
 # /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Menanggapi perintah /start dari pengguna."""
+    """Responds to the /start command from the user."""
     user_name = update.effective_user.first_name
     await update.message.reply_text(
-        f"Halo {user_name}! Silahkan pilih menu yang tersedia.\n\n"
-        "Gunakan menu di bawah ini.",
+        f"Hello {user_name}! Please select an option from the menu below.",
         reply_markup=main_menu_markup,
     )
 
 # /send_tx_hash command
 async def send_tx_hash_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Meminta pengguna untuk mengirimkan hash transaksi."""
+    """Prompts the user to send a transaction hash."""
     await update.message.reply_text(
-        "Silakan kirim bukti tx hash on blockchain transaction\n"
-        "Contoh: tx hash : 0x123abc..."
+        "Please send your blockchain transaction hash proof\n"
+        "Example: tx hash : 0x123abc..."
     )
 
-# /send_picture_proof command (fungsi baru)
+# /send_picture_proof command
 async def send_picture_proof_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Meminta pengguna untuk mengirimkan bukti gambar."""
+    """Prompts the user to send a picture proof."""
     await update.message.reply_text(
-        "Silakan kirimkan bukti gambar."
+        "Please send your picture proof."
     )
 
-# Tangani gambar
+# Handle photo
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Menangani pesan yang berisi gambar (bukti transaksi)."""
+    """Handles messages containing photos (transaction proofs)."""
     user = update.effective_user
 
-    # Inisialisasi user_map jika belum ada. user_map akan menyimpan mapping message_id yang diteruskan
-    # ke chat_id pengguna asli, sehingga bot dapat membalas pesan ke pengguna yang benar.
+    # Initialize user_map to store forwarded message_id to original user's chat_id mapping.
     context.bot_data.setdefault('user_map', {})
 
-    # Teruskan gambar ke pemilik bot
+    # Forward the photo to the bot owner
     forwarded_message = await context.bot.forward_message(
         chat_id=OWNER_ID,
         from_chat_id=user.id,
         message_id=update.message.message_id,
     )
-    logger.info(f"Gambar dari {user.full_name} (ID: {user.id}) diteruskan ke pemilik. ID Pesan Diteruskan: {forwarded_message.message_id}")
+    logger.info(f"Photo from {user.full_name} (ID: {user.id}) forwarded to owner. Forwarded Message ID: {forwarded_message.message_id}")
 
-    # Simpan ID pengguna asal dengan message_id pesan yang diteruskan sebagai kunci
+    # Store the original user's ID with the forwarded message's ID as the key
     context.bot_data['user_map'][forwarded_message.message_id] = user.id
 
-    # Informasi ke pemilik bahwa gambar telah diterima
+    # Inform the owner that the photo has been received
     await context.bot.send_message(
         chat_id=OWNER_ID,
-        text=f"⬆️ Gambar di atas dikirim oleh: {user.full_name} (ID: {user.id})"
+        text=f"⬆️ The photo above was sent by: {user.full_name} (ID: {user.id})"
     )
 
-    # Informasi ke pengguna bahwa gambar telah diteruskan
+    # Inform the user that the photo has been forwarded
     await update.message.reply_text(
-        "Gambar Anda telah diterima dan diteruskan ke pemilik. Terima kasih!",
+        "Your photo has been received and forwarded to the owner. Thank you!",
         reply_markup=main_menu_markup
     )
 
-# Tangani pesan teks
+# Handle text messages
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Menangani pesan teks, baik dari pengguna biasa maupun balasan dari pemilik."""
+    """Handles text messages, both from regular users and replies from the owner."""
     chat_id = update.message.chat_id
     text = update.message.text
     user = update.effective_user
 
-    # Inisialisasi user_map jika belum ada
+    # Initialize user_map
     context.bot_data.setdefault('user_map', {})
 
-    # --- Tangani balasan dari pemilik bot ---
-    # Jika pesan berasal dari OWNER_ID dan merupakan balasan terhadap pesan lain
+    # --- Handle replies from the bot owner ---
+    # If the message is from the OWNER_ID and is a reply to another message
     if str(chat_id) == OWNER_ID and update.message.reply_to_message:
-        logger.info(f"Pemilik {user.full_name} (ID: {user.id}) membalas sebuah pesan.")
-        logger.info(f"ID Pesan yang Dibalas: {update.message.reply_to_message.message_id}")
-        logger.info(f"Pengirim Pesan yang Dibalas: {update.message.reply_to_message.from_user.full_name if update.message.reply_to_message.from_user else 'None'}")
+        logger.info(f"Owner {user.full_name} (ID: {user.id}) replied to a message.")
+        logger.info(f"Replied Message ID: {update.message.reply_to_message.message_id}")
+        logger.info(f"Sender of Replied Message: {update.message.reply_to_message.from_user.full_name if update.message.reply_to_message.from_user else 'None'}")
 
         replied_msg_id = update.message.reply_to_message.message_id
         original_user_id = context.bot_data['user_map'].get(replied_msg_id)
 
         if original_user_id:
             try:
-                # Kirim balasan ke pengguna asli
+                # Send the reply to the original user
                 await context.bot.send_message(
                     chat_id=original_user_id,
-                    text=f"📩 Balasan dari pemilik:\n\n{text}"
+                    text=f"📩 Reply from owner:\n\n{text}"
                 )
-                await update.message.reply_text("✅ Balasan berhasil dikirim ke pengguna asli.")
-                # Baris berikut dihapus agar pemilik dapat membalas berkali-kali
-                # if replied_msg_id in context.bot_data['user_map']:
-                #     del context.bot_data['user_map'][replied_msg_id]
-                logger.info(f"Berhasil mengirim balasan ke pengguna ID: {original_user_id}.")
+                await update.message.reply_text("✅ Reply sent successfully to the original user.")
+                logger.info(f"Successfully sent reply to user ID: {original_user_id}.")
             except Exception as e:
-                logger.error(f"Gagal mengirim balasan ke {original_user_id}: {e}")
-                await update.message.reply_text(f"❌ Gagal mengirim balasan: {e}")
-            return # Penting: keluar dari fungsi setelah menangani balasan pemilik
+                logger.error(f"Failed to send reply to {original_user_id}: {e}")
+                await update.message.reply_text(f"❌ Failed to send reply: {e}")
+            return # Exit the function after handling the owner's reply
 
-    # --- Tangani pesan dari pengguna biasa ---
-    # Jika pesan bukan dari pemilik (atau bukan balasan dari pemilik)
+    # --- Handle messages from regular users ---
+    # If the message is not from the owner (or not a reply from the owner)
     if str(chat_id) != OWNER_ID:
-        # Jika pesan berisi "tx hash :"
+        # If the message contains "tx hash :"
         if "tx hash :" in text.lower():
-            # Teruskan pesan hash ke pemilik bot
+            # Forward the hash message to the bot owner
             forwarded_message = await context.bot.forward_message(
                 chat_id=OWNER_ID,
                 from_chat_id=chat_id,
                 message_id=update.message.message_id
             )
-            logger.info(f"Pesan hash dari {user.full_name} (ID: {user.id}) diteruskan ke pemilik. ID Pesan Diteruskan: {forwarded_message.message_id}")
-            # Simpan ID pengguna asli
+            logger.info(f"Hash message from {user.full_name} (ID: {user.id}) forwarded to owner. Forwarded Message ID: {forwarded_message.message_id}")
+            # Store the original user's ID
             context.bot_data['user_map'][forwarded_message.message_id] = user.id
 
-            # Informasi ke pemilik
+            # Inform the owner
             await context.bot.send_message(
                 chat_id=OWNER_ID,
-                text=f"⬆️ Pesan hash di atas dari: {user.full_name} (ID: {user.id})"
+                text=f"⬆️ The hash message above is from: {user.full_name} (ID: {user.id})"
             )
 
-            # Informasi ke pengguna
+            # Inform the user
             await update.message.reply_text(
-                "Pesan hash Anda telah diteruskan ke pemilik.",
+                "Your hash message has been forwarded to the owner.",
                 reply_markup=main_menu_markup
             )
         else:
-            # Tangani pesan teks lainnya dari pengguna yang bukan merupakan hash atau perintah
+            # Handle other text messages from users that are not hash messages or commands
             await update.message.reply_text(
-                "Maaf, saya hanya bisa menerima gambar sebagai bukti transaksi atau pesan dengan format 'tx hash : [hash Anda]'.\n\n"
-                "Gunakan menu di bawah ini.",
+                "Sorry, I can only accept images as transaction proof or messages in the format 'tx hash : [your hash]'.\n\n"
+                "Please use the menu below.",
                 reply_markup=main_menu_markup
             )
 
-# Fungsi utama
+# Main function
 def main() -> None:
-    """Fungsi utama untuk menjalankan bot."""
+    """Main function to run the bot."""
     if not BOT_TOKEN or not OWNER_ID:
-        logger.error("BOT_TOKEN atau OWNER_ID tidak ditemukan! Pastikan telah disetel di file .env Anda.")
+        logger.error("BOT_TOKEN or OWNER_ID not found! Please ensure they are set in your .env file.")
         return
 
     application = Application.builder().token(BOT_TOKEN).build()
 
-    # Inisialisasi user_map di application.bot_data agar persisten antar handler
+    # Initialize user_map in application.bot_data to persist across handlers
     application.bot_data['user_map'] = {}
-    logger.info("user_map diinisialisasi.")
+    logger.info("user_map initialized.")
 
-    # Daftarkan handler
+    # Register handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("send_tx_hash", send_tx_hash_prompt))
-    application.add_handler(CommandHandler("send_picture_proof", send_picture_proof_prompt)) # Menambahkan handler baru
+    application.add_handler(CommandHandler("send_picture_proof", send_picture_proof_prompt))
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
-    # Menangani pesan teks yang bukan perintah
+    # Handle text messages that are not commands
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
-    logger.info("🤖 Bot sedang berjalan...")
-    # Mulai polling untuk menerima update
+    logger.info("🤖 Bot is running...")
+    # Start polling to receive updates
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
