@@ -228,17 +228,17 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         from_chat_id=user_id,
         message_id=update.message.message_id,
     )
-    # Corrected: Removed redundant user_id=user_id from kwargs
-    logger.info(get_message(context, user_id, "photo_received_owner", user_full_name=user.full_name) + f" Forwarded Message ID: {forwarded_message.message_id}")
+    # Corrected: Added user_id to kwargs because the message template expects it
+    logger.info(get_message(context, user_id, "photo_received_owner", user_full_name=user.full_name, user_id=user_id) + f" Forwarded Message ID: {forwarded_message.message_id}")
 
     # Store the original user's ID with the forwarded message's ID as the key
     context.bot_data['user_map'][forwarded_message.message_id] = user_id
 
     # Inform the owner that the photo has been received
-    # Corrected: Removed redundant user_id=user_id from kwargs
+    # Corrected: Added user_id to kwargs because the message template expects it
     await context.bot.send_message(
         chat_id=OWNER_ID,
-        text=get_message(context, user_id, "photo_received_owner", user_full_name=user.full_name)
+        text=get_message(context, user_id, "photo_received_owner", user_full_name=user.full_name, user_id=user_id)
     )
 
     # Inform the user that the photo has been forwarded
@@ -299,16 +299,16 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 from_chat_id=chat_id,
                 message_id=update.message.message_id
             )
-            # Corrected: Removed redundant user_id=user_id from kwargs
-            logger.info(get_message(context, user_id, "hash_received_owner", user_full_name=user.full_name) + f" Forwarded Message ID: {forwarded_message.message_id}")
+            # Corrected: Added user_id to kwargs because the message template expects it
+            logger.info(get_message(context, user_id, "hash_received_owner", user_full_name=user.full_name, user_id=user_id) + f" Forwarded Message ID: {forwarded_message.message_id}")
             # Store the original user's ID
             context.bot_data['user_map'][forwarded_message.message_id] = user_id
 
             # Inform the owner
-            # Corrected: Removed redundant user_id=user_id from kwargs
+            # Corrected: Added user_id to kwargs because the message template expects it
             await context.bot.send_message(
                 chat_id=OWNER_ID,
-                text=get_message(context, user_id, "hash_received_owner", user_full_name=user.full_name)
+                text=get_message(context, user_id, "hash_received_owner", user_full_name=user.full_name, user_id=user_id)
             )
 
             # Inform the user
@@ -330,14 +330,14 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 from_chat_id=chat_id,
                 message_id=update.message.message_id
             )
-            # Corrected: Removed redundant user_id=user_id from kwargs
-            logger.info(get_message(context, user_id, "unknown_text_forwarded_owner", user_full_name=user.full_name) + f" Forwarded Message ID: {forwarded_message.message_id}")
+            # Corrected: Added user_id to kwargs because the message template expects it
+            logger.info(get_message(context, user_id, "unknown_text_forwarded_owner", user_full_name=user.full_name, user_id=user_id) + f" Forwarded Message ID: {forwarded_message.message_id}")
             context.bot_data['user_map'][forwarded_message.message_id] = user_id
 
-            # Corrected: Removed redundant user_id=user_id from kwargs
+            # Corrected: Added user_id to kwargs because the message template expects it
             await context.bot.send_message(
                 chat_id=OWNER_ID,
-                text=get_message(context, user_id, "unknown_text_forwarded_owner", user_full_name=user.full_name)
+                text=get_message(context, user_id, "unknown_text_forwarded_owner", user_full_name=user.full_name, user_id=user_id)
             )
             await update.message.reply_text(
                 get_message(context, user_id, "unknown_text_forwarded_user"),
