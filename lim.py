@@ -237,14 +237,11 @@ def main() -> None:
         logger.error("BOT_TOKEN or OWNER_ID not found! Please ensure they are set in your .env file.")
         return
 
-    # Build the Application. Note: job_queue(True) enables the default JobQueue.
-    application = Application.builder().token(BOT_TOKEN).build()
+    # Create a JobQueue instance
+    job_queue_instance = JobQueue()
 
-    # Explicitly create and assign JobQueue instance if it's not already set
-    # This is a workaround for potential issues with job_queue(True) in some environments/versions
-    if not isinstance(application.job_queue, JobQueue):
-        application.job_queue = JobQueue(application)
-        logger.info("JobQueue explicitly initialized and assigned.")
+    # Build the Application and pass the JobQueue instance to it
+    application = Application.builder().token(BOT_TOKEN).job_queue(job_queue_instance).build()
 
     # Initialize user_map and all_users in application.bot_data to persist across handlers
     application.bot_data['user_map'] = {}
@@ -260,7 +257,7 @@ def main() -> None:
     # Handle text messages that are not commands
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
-    # Get the JobQueue instance
+    # Get the JobQueue instance (which is now correctly set)
     job_queue = application.job_queue
 
     # Schedule the recurring message every 8 hours (28800 seconds)
