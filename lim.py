@@ -8,6 +8,7 @@ from telegram.ext import (
     ContextTypes,
     MessageHandler,
     filters,
+    JobQueue # Import JobQueue explicitly
 )
 from telegram.error import Forbidden # Import Forbidden to handle blocked users
 
@@ -236,8 +237,14 @@ def main() -> None:
         logger.error("BOT_TOKEN or OWNER_ID not found! Please ensure they are set in your .env file.")
         return
 
-    # Enable JobQueue by setting job_queue=True
-    application = Application.builder().token(BOT_TOKEN).job_queue(True).build()
+    # Build the Application. Note: job_queue(True) enables the default JobQueue.
+    application = Application.builder().token(BOT_TOKEN).build()
+
+    # Explicitly create and assign JobQueue instance if it's not already set
+    # This is a workaround for potential issues with job_queue(True) in some environments/versions
+    if not isinstance(application.job_queue, JobQueue):
+        application.job_queue = JobQueue(application)
+        logger.info("JobQueue explicitly initialized and assigned.")
 
     # Initialize user_map and all_users in application.bot_data to persist across handlers
     application.bot_data['user_map'] = {}
