@@ -115,11 +115,11 @@ MESSAGES = {
 # Global variable for the application instance (will be set in main)
 application = None
 
-def get_message(context: ContextTypes.DEFAULT_TYPE, user_id: int, key: str, **kwargs) -> str:
+def get_message(context: ContextTypes.DEFAULT_TYPE, _user_id_for_lang_lookup: int, key: str, **kwargs) -> str:
     """Retrieves a message in the user's preferred language."""
     # Default to English if language not set or invalid
-    user_lang = context.bot_data.get('user_languages', {}).get(user_id, 'en')
-    logger.debug(f"get_message: User ID {user_id}, Key '{key}', Using language '{user_lang}'")
+    user_lang = context.bot_data.get('user_languages', {}).get(_user_id_for_lang_lookup, 'en')
+    logger.debug(f"get_message: User ID {_user_id_for_lang_lookup}, Key '{key}', Using language '{user_lang}'")
     
     # Fallback to English if the key is not found in the selected language
     message_template = MESSAGES.get(user_lang, MESSAGES['en']).get(key, MESSAGES['en'].get(key, f"Error: Message key '{key}' not found."))
@@ -228,14 +228,14 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         from_chat_id=user_id,
         message_id=update.message.message_id,
     )
-    # Corrected: Removed redundant user_id=user_id from kwargs
+    # Corrected: Pass user_id explicitly for string formatting
     logger.info(get_message(context, user_id, "photo_received_owner", user_full_name=user.full_name, user_id=user_id) + f" Forwarded Message ID: {forwarded_message.message_id}")
 
     # Store the original user's ID with the forwarded message's ID as the key
     context.bot_data['user_map'][forwarded_message.message_id] = user_id
 
     # Inform the owner that the photo has been received
-    # Corrected: Removed redundant user_id=user_id from kwargs
+    # Corrected: Pass user_id explicitly for string formatting
     await context.bot.send_message(
         chat_id=OWNER_ID,
         text=get_message(context, user_id, "photo_received_owner", user_full_name=user.full_name, user_id=user_id)
@@ -299,13 +299,13 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 from_chat_id=chat_id,
                 message_id=update.message.message_id
             )
-            # Corrected: Removed redundant user_id=user_id from kwargs
+            # Corrected: Pass user_id explicitly for string formatting
             logger.info(get_message(context, user_id, "hash_received_owner", user_full_name=user.full_name, user_id=user_id) + f" Forwarded Message ID: {forwarded_message.message_id}")
             # Store the original user's ID
             context.bot_data['user_map'][forwarded_message.message_id] = user_id
 
             # Inform the owner
-            # Corrected: Removed redundant user_id=user_id from kwargs
+            # Corrected: Pass user_id explicitly for string formatting
             await context.bot.send_message(
                 chat_id=OWNER_ID,
                 text=get_message(context, user_id, "hash_received_owner", user_full_name=user.full_name, user_id=user_id)
@@ -330,11 +330,11 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 from_chat_id=chat_id,
                 message_id=update.message.message_id
             )
-            # Corrected: Removed redundant user_id=user_id from kwargs
+            # Corrected: Pass user_id explicitly for string formatting
             logger.info(get_message(context, user_id, "unknown_text_forwarded_owner", user_full_name=user.full_name, user_id=user_id) + f" Forwarded Message ID: {forwarded_message.message_id}")
             context.bot_data['user_map'][forwarded_message.message_id] = user_id
 
-            # Corrected: Removed redundant user_id=user_id from kwargs
+            # Corrected: Pass user_id explicitly for string formatting
             await context.bot.send_message(
                 chat_id=OWNER_ID,
                 text=get_message(context, user_id, "unknown_text_forwarded_owner", user_full_name=user.full_name, user_id=user_id)
