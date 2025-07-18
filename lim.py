@@ -36,7 +36,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Menanggapi perintah /start dari pengguna."""
     user_name = update.effective_user.first_name
     await update.message.reply_text(
-        f"Halo {user_name}! Kirimkan saya gambar sebagai bukti transaksi Anda.\n\n"
+        f"Halo {user_name}! Silahkan pilih menu yang tersedia.\n\n"
         "Gunakan menu di bawah ini.",
         reply_markup=main_menu_markup,
     )
