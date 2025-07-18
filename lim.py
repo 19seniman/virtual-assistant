@@ -203,10 +203,11 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         elif text.isdigit():
             # Respond with the purchase detail prompt
             await update.message.reply_text(
-                "Please fill in the details\n"
-                "Select Faucet Number or Name: \n"
-                "Purchase Quantity: \n"
-                "Payment Method: ",
+                "silakan isi keterangan\n" # Updated message content
+                "▫️Pilih Nomor atau nama Faucetnya :\n"
+                "▫️Jumlah Pembelian :\n"
+                "▫️Alamat Wallet kamu :\n"
+                "▫️Metode Pembayaran :",
                 reply_markup=main_menu_markup # Keep the menu visible
             )
         else:
