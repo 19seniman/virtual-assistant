@@ -162,8 +162,12 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
         context.bot_data.setdefault('user_languages', {})[user_id] = selected_lang
         logger.info(f"User {user_name} (ID: {user_id}) selected language: {selected_lang}")
 
-        # Send the specific message after language selection
-        await query.edit_message_text(
+        # Delete the original message containing the inline keyboard
+        await query.delete_message()
+        
+        # Send a new message with the specific text and the main menu markup
+        await context.bot.send_message(
+            chat_id=user_id,
             text="😊Silahkan klik /start\n😊Please click /start",
             reply_markup=context.bot_data['main_menu_markup'] # Access from bot_data
         )
