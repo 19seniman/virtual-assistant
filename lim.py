@@ -40,7 +40,7 @@ _main_menu_keyboard_definition = [
 MESSAGES = {
     "id": {
         "start_greeting": "Halo {user_name}! Silakan pilih bahasa Anda.",
-        "welcome_menu": "Halo {user_name}! Silakan pilih opsi dari menu di bawah ini.",
+        "welcome_menu": "Halo {user_name}! Selamat datang di @VirtualAssistant19_bot 😎\nSilakan pilih opsi dari menu yang tersedia , selamat menikmati Sahabat !!",
         "tx_hash_prompt": "Silakan kirim bukti tx hash transaksi blockchain Anda\nContoh: tx hash : 0x123abc...",
         "picture_proof_prompt": "Silakan kirimkan bukti gambar.",
         "photo_received_owner": "⬆️ Gambar di atas dikirim oleh: {user_full_name} (ID: {user_id})",
@@ -74,7 +74,7 @@ MESSAGES = {
     },
     "en": {
         "start_greeting": "Hello {user_name}! Please select your language.",
-        "welcome_menu": "Hello {user_name}! Please select an option from the menu below.",
+        "welcome_menu": "Halo {user_name}! Welcome to @VirtualAssistant19_bot 😎\nPlease select an option from the menu, enjoy!",
         "tx_hash_prompt": "Please send your blockchain transaction hash proof\nExample: tx hash : 0x123abc...",
         "picture_proof_prompt": "Please send your picture proof.",
         "photo_received_owner": "⬆️ The photo above was sent by: {user_full_name} (ID: {user_id})",
@@ -162,9 +162,9 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
         context.bot_data.setdefault('user_languages', {})[user_id] = selected_lang
         logger.info(f"User {user_name} (ID: {user_id}) selected language: {selected_lang}")
 
-        # Edit the message to remove the language selection buttons and show the welcome message
+        # Send the specific message after language selection
         await query.edit_message_text(
-            text=get_message(context, user_id, "welcome_menu", user_name=user_name),
+            text="😊Silahkan klik /start\n😊Please click /start",
             reply_markup=context.bot_data['main_menu_markup'] # Access from bot_data
         )
 
