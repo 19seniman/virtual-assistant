@@ -111,10 +111,11 @@ MESSAGES = {
 # Global variable for the application instance (will be set in main)
 application = None
 
-def get_message(user_id: int, key: str, **kwargs) -> str:
+def get_message(context: ContextTypes.DEFAULT_TYPE, user_id: int, key: str, **kwargs) -> str:
     """Retrieves a message in the user's preferred language."""
     # Default to English if language not set or invalid
-    user_lang = application.bot_data.get('user_languages', {}).get(user_id, 'en')
+    user_lang = context.bot_data.get('user_languages', {}).get(user_id, 'en')
+    logger.debug(f"get_message: User ID {user_id}, Key '{key}', Using language '{user_lang}'")
     
     # Fallback to English if the key is not found in the selected language
     message_template = MESSAGES.get(user_lang, MESSAGES['en']).get(key, MESSAGES['en'].get(key, f"Error: Message key '{key}' not found."))
@@ -133,7 +134,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Check if user already has a language preference
     if user_id in context.bot_data.get('user_languages', {}):
         await update.message.reply_text(
-            get_message(user_id, "welcome_menu", user_name=user_name),
+            get_message(context, user_id, "welcome_menu", user_name=user_name),
             reply_markup=context.bot_data['main_menu_markup'], # Access from bot_data
         )
     else:
@@ -144,7 +145,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text(
-            get_message(user_id, "start_greeting", user_name=user_name), # Use a generic greeting for language selection
+            get_message(context, user_id, "start_greeting", user_name=user_name), # Use a generic greeting for language selection
             reply_markup=reply_markup
         )
 
@@ -163,7 +164,7 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
 
         # Edit the message to remove the language selection buttons and show the welcome message
         await query.edit_message_text(
-            text=get_message(user_id, "welcome_menu", user_name=user_name),
+            text=get_message(context, user_id, "welcome_menu", user_name=user_name),
             reply_markup=context.bot_data['main_menu_markup'] # Access from bot_data
         )
 
@@ -174,7 +175,7 @@ async def send_tx_hash_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_id = update.effective_user.id
     context.bot_data.setdefault('all_users', set()).add(user_id)
     await update.message.reply_text(
-        get_message(user_id, "tx_hash_prompt")
+        get_message(context, user_id, "tx_hash_prompt")
     )
 
 # /send_picture_proof command
@@ -183,7 +184,7 @@ async def send_picture_proof_prompt(update: Update, context: ContextTypes.DEFAUL
     user_id = update.effective_user.id
     context.bot_data.setdefault('all_users', set()).add(user_id)
     await update.message.reply_text(
-        get_message(user_id, "picture_proof_prompt")
+        get_message(context, user_id, "picture_proof_prompt")
     )
 
 # /buy_testnet_faucet command
@@ -191,14 +192,14 @@ async def buy_testnet_faucet_prompt(update: Update, context: ContextTypes.DEFAUL
     """Displays testnet faucet options and payment methods."""
     user_id = update.effective_user.id
     context.bot_data.setdefault('all_users', set()).add(user_id)
-    await update.message.reply_text(get_message(user_id, "faucet_list_message"))
+    await update.message.reply_text(get_message(context, user_id, "faucet_list_message"))
 
 # /script_access_on_github command
 async def script_access_on_github_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Prompts the user for payment to gain script access on GitHub."""
     user_id = update.effective_user.id
     context.bot_data.setdefault('all_users', set()).add(user_id)
-    await update.message.reply_text(get_message(user_id, "script_access_prompt"))
+    await update.message.reply_text(get_message(context, user_id, "script_access_prompt"))
 
 
 # Handle photo
@@ -219,7 +220,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         from_chat_id=user_id,
         message_id=update.message.message_id,
     )
-    logger.info(get_message(user_id, "photo_received_owner", user_full_name=user.full_name, user_id=user_id) + f" Forwarded Message ID: {forwarded_message.message_id}")
+    logger.info(get_message(context, user_id, "photo_received_owner", user_full_name=user.full_name, user_id=user_id) + f" Forwarded Message ID: {forwarded_message.message_id}")
 
     # Store the original user's ID with the forwarded message's ID as the key
     context.bot_data['user_map'][forwarded_message.message_id] = user_id
@@ -227,12 +228,12 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     # Inform the owner that the photo has been received
     await context.bot.send_message(
         chat_id=OWNER_ID,
-        text=get_message(user_id, "photo_received_owner", user_full_name=user.full_name, user_id=user_id)
+        text=get_message(context, user_id, "photo_received_owner", user_full_name=user.full_name, user_id=user_id)
     )
 
     # Inform the user that the photo has been forwarded
     await update.message.reply_text(
-        get_message(user_id, "photo_received_user"),
+        get_message(context, user_id, "photo_received_user"),
         reply_markup=context.bot_data['main_menu_markup'] # Access from bot_data
     )
 
@@ -265,13 +266,13 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 # Send the reply to the original user
                 await context.bot.send_message(
                     chat_id=original_user_id,
-                    text=get_message(original_user_id, "reply_from_owner", text=text)
+                    text=get_message(context, original_user_id, "reply_from_owner", text=text)
                 )
-                await update.message.reply_text(get_message(chat_id, "reply_sent_success"))
+                await update.message.reply_text(get_message(context, chat_id, "reply_sent_success"))
                 logger.info(f"Successfully sent reply to user ID: {original_user_id}.")
             except Exception as e:
-                logger.error(get_message(original_user_id, "reply_send_fail", error=e))
-                await update.message.reply_text(get_message(chat_id, "reply_send_fail", error=e))
+                logger.error(get_message(context, original_user_id, "reply_send_fail", error=e))
+                await update.message.reply_text(get_message(context, chat_id, "reply_send_fail", error=e))
             return # Exit the function after handling the owner's reply
 
     # --- Handle messages from regular users ---
@@ -285,26 +286,26 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 from_chat_id=chat_id,
                 message_id=update.message.message_id
             )
-            logger.info(get_message(user_id, "hash_received_owner", user_full_name=user.full_name, user_id=user_id) + f" Forwarded Message ID: {forwarded_message.message_id}")
+            logger.info(get_message(context, user_id, "hash_received_owner", user_full_name=user.full_name, user_id=user_id) + f" Forwarded Message ID: {forwarded_message.message_id}")
             # Store the original user's ID
             context.bot_data['user_map'][forwarded_message.message_id] = user_id
 
             # Inform the owner
             await context.bot.send_message(
                 chat_id=OWNER_ID,
-                text=get_message(user_id, "hash_received_owner", user_full_name=user.full_name, user_id=user.id)
+                text=get_message(context, user_id, "hash_received_owner", user_full_name=user.full_name, user_id=user.id)
             )
 
             # Inform the user
             await update.message.reply_text(
-                get_message(user_id, "hash_received_user"),
+                get_message(context, user_id, "hash_received_user"),
                 reply_markup=context.bot_data['main_menu_markup'] # Access from bot_data
             )
         # Check if the message is a digit (e.g., '1', '2', '3')
         elif text.isdigit():
             # Respond with the purchase detail prompt
             await update.message.reply_text(
-                get_message(user_id, "purchase_details_prompt"),
+                get_message(context, user_id, "purchase_details_prompt"),
                 reply_markup=context.bot_data['main_menu_markup'] # Keep the menu visible
             )
         else:
@@ -314,15 +315,15 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 from_chat_id=chat_id,
                 message_id=update.message.message_id
             )
-            logger.info(get_message(user_id, "unknown_text_forwarded_owner", user_full_name=user.full_name, user_id=user.id) + f" Forwarded Message ID: {forwarded_message.message_id}")
+            logger.info(get_message(context, user_id, "unknown_text_forwarded_owner", user_full_name=user.full_name, user_id=user.id) + f" Forwarded Message ID: {forwarded_message.message_id}")
             context.bot_data['user_map'][forwarded_message.message_id] = user_id
 
             await context.bot.send_message(
                 chat_id=OWNER_ID,
-                text=get_message(user_id, "unknown_text_forwarded_owner", user_full_name=user.full_name, user_id=user.id)
+                text=get_message(context, user_id, "unknown_text_forwarded_owner", user_full_name=user.full_name, user_id=user.id)
             )
             await update.message.reply_text(
-                get_message(user_id, "unknown_text_forwarded_user"),
+                get_message(context, user_id, "unknown_text_forwarded_user"),
                 reply_markup=context.bot_data['main_menu_markup'] # Access from bot_data
             )
 
@@ -332,7 +333,7 @@ async def send_scheduled_faucet_list(context: ContextTypes.DEFAULT_TYPE) -> None
     if 'all_users' in context.bot_data:
         for user_id in list(context.bot_data['all_users']): # Iterate over a copy to allow modification if users block
             try:
-                await context.bot.send_message(chat_id=user_id, text=get_message(user_id, "faucet_list_message"))
+                await context.bot.send_message(chat_id=user_id, text=get_message(context, user_id, "faucet_list_message"))
                 logger.info(f"Sent scheduled faucet list to user ID: {user_id}")
             except Forbidden:
                 # User blocked the bot, remove them from the list
